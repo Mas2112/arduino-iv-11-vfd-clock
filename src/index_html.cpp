@@ -1,0 +1,721 @@
+#include "index_html.h"
+
+const char MAIN_page[] = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>IV-11 Uhr</title>
+ <style>
+  body.dark { background-color: #222; color: white; }
+  body.light { background-color: white; color: black; }
+  .container { padding: 20px; }
+
+  .digit-control {
+    display: inline-block;
+    text-align: center;
+    margin: 5px;
+  }
+  .digit-control button {
+    display: block;
+    width: 40px;
+    height: 30px;
+    font-size: 18px;
+    margin: 2px auto;
+  }
+  .digit-box {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    text-align: center;
+  }
+  .colon {
+    display: flex;
+    align-items: center;   /* vertikal mittig im eigenen Feld */
+    justify-content: center;
+    width: 20px;
+    height: 40px;          /* wie .digit-box */
+    line-height: 40px;
+    font-size: 28px;
+    text-align: center;
+    margin: 0 6px;
+    grid-row: 2;           /* WICHTIG: in die mittlere Reihe (Ziffernreihe) */
+  }
+
+/* --- Verbesserte Darstellung der Dark-Mode-Zeile --- */
+/* --- Einheitlich gestaltete Dark-Mode-Zeile --- */
+#darkModeRow {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    height: 55px;
+    font-size: 28px;       /* gleiche Größe wie restlicher Text */
+    font-weight: 600;      /* mittlere Stärke, wirkt harmonisch */
+    line-height: 55px;
+    margin-top: 16px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Hintergrundfarben je nach Modus */
+body.light #darkModeRow {
+    background-color: #e8e8e8;
+    color: #111;
+}
+
+body.dark #darkModeRow {
+    background-color: #333;
+    color: #f5f5f5;
+}
+
+/* Checkbox etwas größer und schöner zentriert */
+#darkModeRow input[type="checkbox"] {
+    width: 28px;
+    height: 28px;
+    transform: scale(1.4);
+    accent-color: #2196f3;
+    margin-right: 12px;
+}
+
+#darkModeRow:hover {
+    filter: brightness(1.08);
+}
+
+  /* Bereich zur Eingabe des Namens der Uhr */
+  #clockNameRow {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: 18px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  body.light #clockNameRow {
+    background-color: #e8e8e8;
+    color: #111;
+  }
+
+  body.dark #clockNameRow {
+    background-color: #333;
+    color: #f5f5f5;
+  }
+
+  #clockNameRow input {
+    width: 220px;
+    font-size: 16px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid #aaa;
+    margin-top: 6px;
+  }
+
+  #clockNameRow button {
+    margin-top: 10px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+
+  body.light #clockNameRow button {
+    background-color: #1976d2;
+    color: white;
+  }
+
+  body.dark #clockNameRow button {
+    background-color: #2196f3;
+    color: white;
+  }
+
+  /* macht die Zeit-Einsteller zu einer Spalten-Grid mit 3 Reihen:
+     1: Up, 2: Ziffer, 3: Down */
+  #timeControls {
+   display: grid;
+   grid-auto-flow: column;
+   grid-template-rows: auto 40px auto;
+   align-items: start;
+   column-gap: 2px;
+   justify-content: start;   /* statt center / end → jetzt links */
+  }
+  /* Jede Ziffernspalte (mit ↑ Ziffer ↓) soll alle 3 Reihen belegen */
+  #timeControls .digit-control {
+    grid-row: 1 / span 3;
+    display: inline-block;          /* dein bisheriges Layout bleibt intern gleich */
+  }
+  button[onclick="sendTime()"] {
+    display: inline-block;
+    margin-left: 0;   /* sicherstellen, dass er links bleibt */
+    margin-top: 10px;
+  } 
+  
+  #dateControls {
+    display: grid;
+    grid-auto-flow: column;             /* nebeneinander */
+    grid-template-rows: auto 40px auto; /* oben = ▲, Mitte = Ziffer, unten = ▼ */
+    align-items: start;
+    column-gap: 2px;                     /* Abstand zwischen Spalten */
+    justify-content: start;              /* linksbündig */
+  }
+
+  #dateControls .digit-control {
+    grid-row: 1 / span 3;               /* jede Ziffer + Buttons über alle 3 Reihen */
+    display: inline-block;
+  }
+
+  #sleepControls {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: auto 40px auto;
+    align-items: start;
+    column-gap: 2px;
+    justify-content: start; /* linksbündig */
+  }
+  #sleepControls .digit-control {
+    grid-row: 1 / span 3;
+    display: inline-block;
+  }
+
+  .dot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin: 0 4px;
+    grid-row: 2;                         /* auf Höhe der Ziffern */
+  }
+
+  button[onclick="sendDate()"] {
+    display: block;
+    margin-left: 0;   /* linksbündig unter der Zeile */
+    margin-top: 10px;
+  }
+
+  
+  .radar-box {
+    display: inline-block;       /* statt Block → verhindert unnötigen Umbruch */
+    padding: 6px 12px;           /* etwas kompakter */
+    font-weight: bold;
+    font-size: 18px;             /* gleiche Größe wie vorher */
+    border-radius: 8px;
+    color: white;
+    white-space: nowrap;         /* verhindert Zeilenumbruch */
+    margin: 10px 0;
+  }
+    .radar-on {
+      background-color: green;
+    }
+    .radar-off {
+      background-color: gray;
+    }
+
+  /* Bereich zur Auswahl der Ziffern-Animation */
+  #animationRow {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: 18px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  body.light #animationRow {
+    background-color: #e8e8e8;
+    color: #111;
+  }
+
+  body.dark #animationRow {
+    background-color: #333;
+    color: #f5f5f5;
+  }
+
+  #animationControls {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: auto 40px auto;
+    align-items: start;
+    column-gap: 2px;
+    justify-content: start;
+  }
+
+  #animationControls .digit-control {
+    grid-row: 1 / span 3;
+    display: inline-block;
+  }
+
+  #animationRow button {
+    margin-top: 10px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+
+  body.light #animationRow button {
+    background-color: #1976d2;
+    color: white;
+  }
+
+  body.dark #animationRow button {
+    background-color: #2196f3;
+    color: white;
+  }
+ </style>
+
+</head>
+<body class="light" id="body">
+  <div class="container">
+    <h1>IV-11 Uhr Webinterface</h1>
+
+    <label for="ledBrightness">LED-Helligkeit:</label>
+    <input type="range" id="ledBrightness" min="0" max="100" value="50">
+    <br><br>
+
+    <div id="darkModeRow">
+      <label for="themeToggle" style="display:flex; align-items:center; gap:10px;">
+        <input type="checkbox" id="themeToggle">
+        <span>Dark Mode</span>
+      </label>
+    </div>
+
+    <!-- Name der Uhr -->
+    <div id="clockNameRow">
+      <label for="clockName">Name der Uhr in AP und WLAN:</label>
+      <input type="text" id="clockName" value="%CLOCKNAME%">
+      <button onclick="saveClockName()">Name speichern und Neustart</button>
+    </div>
+
+    <label for="ssidSelect">WLAN auswählen:</label>
+    <select id="ssidSelect">
+      <option>Lade WLAN-Liste...</option>
+    </select>
+    <button onclick="scanWLANs()">Neu scannen</button>
+
+   
+    <h2>Uhrzeit einstellen</h2>
+    <div id="timeControls">
+      <!-- Stunden -->
+      <div class="digit-control">
+        <button onclick="adjustDigit('h10', 1)">▲</button>
+        <input type="text" id="h10" class="digit-box" value="0" readonly>
+        <button onclick="adjustDigit('h10', -1)">▼</button>
+      </div>
+      <div class="digit-control">
+        <button onclick="adjustDigit('h1', 1)">▲</button>
+        <input type="text" id="h1" class="digit-box" value="0" readonly>
+        <button onclick="adjustDigit('h1', -1)">▼</button>
+      </div>
+
+      <!-- Doppelpunkt -->
+      <div class="colon">:</div>
+
+      <!-- Minuten -->
+      <div class="digit-control">
+        <button onclick="adjustDigit('m10', 1)">▲</button>
+        <input type="text" id="m10" class="digit-box" value="0" readonly>
+        <button onclick="adjustDigit('m10', -1)">▼</button>
+      </div>
+      <div class="digit-control">
+        <button onclick="adjustDigit('m1', 1)">▲</button>
+        <input type="text" id="m1" class="digit-box" value="0" readonly>
+        <button onclick="adjustDigit('m1', -1)">▼</button>
+      </div>
+
+      <!-- Doppelpunkt -->
+      <div class="colon">:</div>
+
+      <!-- Sekunden -->
+      <div class="digit-control">
+        <button onclick="adjustDigit('s10', 1)">▲</button>
+        <input type="text" id="s10" class="digit-box" value="0" readonly>
+        <button onclick="adjustDigit('s10', -1)">▼</button>
+      </div>
+      <div class="digit-control">
+        <button onclick="adjustDigit('s1', 1)">▲</button>
+        <input type="text" id="s1" class="digit-box" value="0" readonly>
+        <button onclick="adjustDigit('s1', -1)">▼</button>
+      </div>
+    </div>
+
+    <button onclick="sendTime()">Zeit übernehmen</button>
+
+
+    <h2>Datum einstellen</h2>
+    <div id="dateControls">
+      <!-- Tag -->
+      <div class="digit-control">
+        <button onclick="adjustDigit('d10', 1)">▲</button>
+        <input type="text" id="d10" class="digit-box" value="0" readonly>
+        <button onclick="adjustDigit('d10', -1)">▼</button>
+      </div>
+      <div class="digit-control">
+        <button onclick="adjustDigit('d1', 1)">▲</button>
+        <input type="text" id="d1" class="digit-box" value="1" readonly>
+        <button onclick="adjustDigit('d1', -1)">▼</button>
+      </div>
+
+      <!-- Punkt -->
+      <div class="dot">.</div>
+
+      <!-- Monat -->
+      <div class="digit-control">
+        <button onclick="adjustDigit('mo10', 1)">▲</button>
+        <input type="text" id="mo10" class="digit-box" value="0" readonly>
+        <button onclick="adjustDigit('mo10', -1)">▼</button>
+      </div>
+      <div class="digit-control">
+        <button onclick="adjustDigit('mo1', 1)">▲</button>
+        <input type="text" id="mo1" class="digit-box" value="1" readonly>
+        <button onclick="adjustDigit('mo1', -1)">▼</button>
+      </div>
+
+      <!-- Punkt -->
+      <div class="dot">.</div>
+
+      <!-- Jahr (4 Stellen) -->
+      <div class="digit-control">
+        <button onclick="adjustDigit('y1000', 1)">▲</button>
+        <input type="text" id="y1000" class="digit-box" value="2" readonly>
+        <button onclick="adjustDigit('y1000', -1)">▼</button>
+      </div>
+      <div class="digit-control">
+        <button onclick="adjustDigit('y100', 1)">▲</button>
+        <input type="text" id="y100" class="digit-box" value="0" readonly>
+        <button onclick="adjustDigit('y100', -1)">▼</button>
+      </div>
+      <div class="digit-control">
+        <button onclick="adjustDigit('y10', 1)">▲</button>
+        <input type="text" id="y10" class="digit-box" value="2" readonly>
+        <button onclick="adjustDigit('y10', -1)">▼</button>
+      </div>
+      <div class="digit-control">
+        <button onclick="adjustDigit('y1', 1)">▲</button>
+        <input type="text" id="y1" class="digit-box" value="5" readonly>
+        <button onclick="adjustDigit('y1', -1)">▼</button>
+      </div>
+    </div>
+
+    <button onclick="sendDate()">Datum übernehmen</button>
+
+    <div id="radarBox" class="radar-box radar-off">
+      Radar: niemand da
+    </div>
+
+    
+    <h3>Röhrenabschaltung</h3>
+    <div>
+      <label>
+        <input type="checkbox" id="sleepModeCheckbox">
+        Röhren abschalten, wenn niemand im Raum ist
+      </label>
+    </div>
+
+    <div style="margin-top:10px;">
+      <label style="display:block; font-weight:bold; margin-bottom:5px;">Dauer bis Abschalten (Minuten):</label>
+      <div id="sleepControls" style="display:grid; grid-auto-flow:column; grid-template-rows:auto 40px auto; align-items:start; column-gap:2px; justify-content:start;">
+        <div class="digit-control">
+          <button onclick="incSleep(10)">▲</button>
+          <input type="text" id="sleep10" class="digit-box" maxlength="1" readonly>
+          <button onclick="decSleep(10)">▼</button>
+        </div>
+        <div class="digit-control">
+          <button onclick="incSleep(1)">▲</button>
+          <input type="text" id="sleep1" class="digit-box" maxlength="1" readonly>
+          <button onclick="decSleep(1)">▼</button>
+        </div>
+      </div>
+     </div>
+
+     <button onclick="sendSleepSettings()" style="margin-top:10px;">Speichern</button>
+
+     <!-- Animation der Ziffern -->
+     <div id="animationRow">
+       <label for="animMode">Ziffern-Animation (0 = keine, 1 = rollend):</label>
+       <div id="animationControls">
+         <div class="digit-control">
+           <button onclick="adjustDigit('animMode', 1)">▲</button>
+           <input type="text" id="animMode" class="digit-box" value="%ANIMMODE%" readonly>
+           <button onclick="adjustDigit('animMode', -1)">▼</button>
+         </div>
+       </div>
+       <button onclick="saveAnimMode()">Speichern und anwenden</button>
+     </div>
+
+  </div>
+
+  <script>
+    function applyTheme(isDark) {
+      document.getElementById('body').className = isDark ? 'dark' : 'light';
+      document.getElementById('themeToggle').checked = isDark;
+    }
+
+    // Einstellungen laden
+    fetch('/getSettings')
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('ledBrightness').value = data.brightness * 100;
+        applyTheme(data.theme === 'dark');
+      });
+
+    // LED-Helligkeit ändern
+    document.getElementById('ledBrightness').addEventListener('input', function () {
+      fetch('/setLEDBrightness', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'value=' + (this.value / 100)
+      });
+    });
+
+    // Dark Mode ändern
+    document.getElementById('themeToggle').addEventListener('change', function () {
+      const mode = this.checked ? 'dark' : 'light';
+      fetch('/setDarkMode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'mode=' + mode
+      });
+      applyTheme(this.checked);
+    });
+
+    function saveClockName() {
+      const name = document.getElementById('clockName').value.trim();
+      if (name.length === 0) {
+        alert("Bitte einen Namen eingeben!");
+        return;
+      }
+      fetch("/setClockName?name=" + encodeURIComponent(name))
+        .then(response => {
+          if (response.ok) {
+            alert("Name gespeichert. Die Uhr startet jetzt neu...");
+          } else {
+            alert("Fehler beim Speichern des Namens!");
+          }
+        });
+    }
+
+    // WLAN-Scan starten und Liste anzeigen
+    function scanWLANs() {
+      fetch('/scan')
+        .then(res => {
+          if (res.status === 202) {
+            // Scan läuft – in 2 Sekunden nochmal versuchen
+            setTimeout(scanWLANs, 2000);
+            return [];
+          }
+          return res.json();
+        })
+        .then(data => {
+          if (!Array.isArray(data)) return;
+          const select = document.getElementById('ssidSelect');
+          select.innerHTML = "";
+          data.forEach(ssid => {
+            const opt = document.createElement('option');
+            opt.value = ssid;
+            opt.textContent = ssid;
+            select.appendChild(opt);
+          });
+        })
+        .catch(err => {
+          console.error("Fehler beim WLAN-Scan:", err);
+        });
+    }
+
+    // Starte initialen WLAN-Scan beim Laden
+    window.onload = scanWLANs;
+
+
+
+    // Ziffern verstellen
+    function adjustDigit(id, delta) {
+      const input = document.getElementById(id);
+      let val = parseInt(input.value) || 0;
+      val = (val + delta + 10) % 10; // immer 0–9
+      input.value = val;
+    }
+
+    // Zeit an den ESP schicken
+    function sendTime() {
+      const h10 = parseInt(document.getElementById('h10').value) || 0;
+      const h1  = parseInt(document.getElementById('h1').value) || 0;
+      const m10 = parseInt(document.getElementById('m10').value) || 0;
+      const m1  = parseInt(document.getElementById('m1').value) || 0;
+      const s10 = parseInt(document.getElementById('s10').value) || 0;
+      const s1  = parseInt(document.getElementById('s1').value) || 0;
+
+      const hours = h10 * 10 + h1;
+      const minutes = m10 * 10 + m1;
+      const seconds = s10 * 10 + s1;
+
+      fetch('/setTime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `hours=${hours}&minutes=${minutes}&seconds=${seconds}`
+      }).then(res => {
+        if (res.ok) {
+          alert("Zeit erfolgreich gesetzt!");
+        } else {
+          alert("Fehler beim Setzen der Zeit.");
+        }
+      });
+    }
+
+    function sendDate() {
+      const day = parseInt(document.getElementById("d10").value) * 10 +
+                  parseInt(document.getElementById("d1").value);
+
+      const month = parseInt(document.getElementById("mo10").value) * 10 +
+                  parseInt(document.getElementById("mo1").value);
+
+      const year = parseInt(document.getElementById("y1000").value) * 1000 +
+                   parseInt(document.getElementById("y100").value) * 100 +
+                   parseInt(document.getElementById("y10").value) * 10 +
+                   parseInt(document.getElementById("y1").value);
+
+      fetch('/setDate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `day=${day}&month=${month}&year=${year}`
+      }).then(res => {
+        if (res.ok) {
+          alert("Datum erfolgreich gesetzt!");
+        } else {
+          alert("Fehler beim Setzen des Datums.");
+        }
+      });
+    }
+
+
+    function loadDateTime() {
+      fetch('/getDateTime')
+        .then(res => res.json())
+        .then(data => {
+          // Uhrzeit
+          document.getElementById("h10").value = data.h10;
+          document.getElementById("h1").value  = data.h1;
+          document.getElementById("m10").value = data.m10;
+          document.getElementById("m1").value  = data.m1;
+          document.getElementById("s10").value = data.s10;
+          document.getElementById("s1").value  = data.s1;
+
+          // Datum
+          document.getElementById("d10").value   = data.d10;
+          document.getElementById("d1").value    = data.d1;
+          document.getElementById("mo10").value  = data.mo10;
+          document.getElementById("mo1").value   = data.mo1;
+          document.getElementById("y1000").value = data.y1000;
+          document.getElementById("y100").value  = data.y100;
+          document.getElementById("y10").value   = data.y10;
+          document.getElementById("y1").value    = data.y1;
+        })
+        .catch(err => console.error("Fehler beim Laden von DateTime:", err));
+    }
+
+    // Initial beim Laden
+    window.onload = function() {
+      scanWLANs();   
+      loadDateTime(); 
+      loadSleepSettings();
+    };
+
+    function updateRadarBox(state) {
+     let box = document.getElementById("radarBox");
+     if (state === 1) {
+       box.textContent = "Radar: Person erkannt";
+       box.classList.remove("radar-off");
+       box.classList.add("radar-on");
+     } else {
+       box.textContent = "Radar: niemand da";
+       box.classList.remove("radar-on");
+       box.classList.add("radar-off");
+     }
+    }
+
+    // beim Laden einmalig aktuellen Zustand abfragen
+    fetch('/radar')
+      .then(response => response.json())
+      .then(data => updateRadarBox(data.radar))
+      .catch(err => console.error(err));
+
+    // danach Events für Flankenwechsel empfangen
+    var source = new EventSource('/events');
+    source.addEventListener('radar', function(e) {
+      let state = parseInt(e.data);
+      updateRadarBox(state);
+    }, false);
+
+    function saveAnimMode() {
+        const modeValue = document.getElementById("animMode").value;
+        fetch(`/setAnimMode?mode=${modeValue}`)
+          .then(response => {
+              if (response.ok) {
+                  alert("Ziffern-Animation gespeichert und angewendet!");
+              } else {
+                  alert("Fehler beim Speichern der Animationseinstellung!");
+              }
+          });
+    }
+
+    function sendSleepSettings() {
+      const useSleepMode = document.getElementById("sleepModeCheckbox").checked ? 1 : 0;
+      const timeToSleep = parseInt(document.getElementById("sleep10").value) * 10 +
+                          parseInt(document.getElementById("sleep1").value);
+
+      fetch('/setSleepSettings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `useSleepMode=${useSleepMode}&timeToSleep=${timeToSleep}`
+      }).then(res => {
+        if (res.ok) {
+          alert("Sleep-Settings erfolgreich gespeichert!");
+        } else {
+          alert("Fehler beim Speichern der Sleep-Settings.");
+        }
+      });
+    }
+
+
+    function loadSleepSettings() {
+      fetch('/getSleepSettings')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("sleepModeCheckbox").checked = (data.useSleepMode === 1);
+          updateSleepInputs(data.timeToSleep); // NEU: nutzt die Pfeil-Logik
+        })
+        .catch(err => console.error("Fehler beim Laden der Sleep-Settings:", err));
+    }
+
+
+    function incSleep(step) {
+      let tens = parseInt(document.getElementById("sleep10").value) || 0;
+      let ones = parseInt(document.getElementById("sleep1").value) || 0;
+      let value = tens * 10 + ones;
+      value += step;
+      if (value > 99) value = 99;
+      updateSleepInputs(value);
+    }
+
+    function decSleep(step) {
+      let tens = parseInt(document.getElementById("sleep10").value) || 0;
+      let ones = parseInt(document.getElementById("sleep1").value) || 0;
+      let value = tens * 10 + ones;
+      value -= step;
+      if (value < 0) value = 0;
+      updateSleepInputs(value);
+    }
+
+    function updateSleepInputs(value) {
+      document.getElementById("sleep10").value = Math.floor(value / 10);
+      document.getElementById("sleep1").value = value % 10;
+    }
+
+  </script>
+</body>
+</html>
+)rawliteral";
+
+
