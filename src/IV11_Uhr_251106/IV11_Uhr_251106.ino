@@ -3,7 +3,7 @@ Für sichere Funktion erforderlich:
 Zusätzliche Block-Kondensatoren an 5V und 3,3V (47uF)
 Einstellungen Board-Manager:
 Board: "Waveshare ESP32-S3-Zero" (Wichtig: Wirklich genau das auswählen!)
-ESB CDC On Boot: "Enable"
+USB CDC On Boot: "Enable"
 CPU Frequency "80MHz (WiFi)"
 Partition Scheme: "Huge APP (3MB No OTA/1MB SPIFFS)"
 PSRAM: "Disabled"
