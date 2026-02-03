@@ -6,10 +6,7 @@
 #include "settings.h"
 #include "webserver.h"
 #include <WiFi.h>
-
-//const char* ap_ssid = "IV11-Uhr";
-const char* ap_password = "12345678";  // Optional
-
+#include "wifitask.h"
 
 // === Task-Funktionen ===
 void multiplexTask(void *pvParameters) {
@@ -47,27 +44,6 @@ void rtcTask(void *pvParameters) {
     //setDisplayTime(nowTime);            // an deine Display-Funktion übergeben
     timeOrDate();                       // Entscheiden, ob Zeit, oder Datum angezeigt werden sollen, und das dann auch machen
     vTaskDelay(pdMS_TO_TICKS(5));      //War ursprünglich auf 250, muss für Animationen schneller laufen
-  }
-}
-
-void wifiTask(void *pvParameters) {
-  // Starte Access Point
-  // WLAN-Modus: gleichzeitiger Access Point und Station-Modus
-  WiFi.mode(WIFI_AP_STA);               //macht parallel zum AP das Scannen nach WLA's möglich
-
-  WiFi.softAP(getNameOfClock().c_str(), ap_password);    // Access Point mit gespeicherter SSID und Passwort starten
-
-  Serial.println("Access Point gestartet");
-  Serial.print("AP IP-Adresse: ");
-  Serial.println(WiFi.softAPIP());
-
-  delay(1000);                          // Zeit für Access Point Initialisierung
-  setupWebServer();                     // Asynchronen Webserver und Captive Portal initialisieren
-  while (true) {
-    // DNS-Anfragen für Captive Portal bearbeiten
-    processDNS();  // Wichtig für Android Captive Portal
-    vTaskDelay(pdMS_TO_TICKS(100));
-    loopRadarCheck(); //fragt das Radar-Pin ab
   }
 }
 
