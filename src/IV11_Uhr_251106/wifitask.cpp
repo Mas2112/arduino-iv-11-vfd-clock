@@ -3,6 +3,7 @@
 #include "wifitask.h"
 #include "settings.h"
 #include "webserver.h"
+#include "ntptask.h"
 
 const char* ap_password = "12345678";  // Optional
 
@@ -44,6 +45,7 @@ void startStationMode(const String& ssid, const String& password) {
     Serial.println("WiFi connected!");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
+    initTime();
   } else {
     // No connection could be established in 30 seconds, switch to AP mode
     Serial.println();

@@ -100,13 +100,8 @@ NeoPixelBus by Makuna (V.2.8.4) --> funktioniert NICHT mit Board-Packet "esp32 b
 #include "tasks.h"
 #include "display.h"
 
-
-
 unsigned long lastMotionTime = 0;
 bool tubesEnabled = false;
-
-
-
 
 // Initialisierung aller Module und Start des Access Points
 void setup() {
@@ -120,9 +115,7 @@ void setup() {
   loadSettings();                    // Aus Flash laden
   //Serial.printf("Nach loadSettings(): ziAniMode = %d\n", getziAniMode());
 
-
   startAllTasks();  // Alle Tasks starten
-
 }
 
 // Hauptschleife:
