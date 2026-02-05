@@ -1,3 +1,5 @@
 #pragma once
 
 void initTime();
+void initNtpServer(const String& server);
+void initTimeZone(const String& tz);

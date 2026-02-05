@@ -5,10 +5,6 @@
 #include "clocktime.h"
 #include "esp_sntp.h"
 
-// https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
-// Europe/Berlin
-const char * timeZone = "CET-1CEST,M3.5.0,M10.5.0/3";
-
 void timeSyncCallback(struct timeval *tv) {
     Serial.println("Zeit synchronisiert");
 
@@ -26,9 +22,22 @@ void initTime() {
     sntp_set_time_sync_notification_cb(timeSyncCallback);
 
     // First connect to NTP server, with 0 TZ offset
-    configTime(0, 0, getNtpServer().c_str());
-    
+    String ntpServer = getNtpServer();
+    initNtpServer(ntpServer);
+    String timeZone = getTimeZone();
+    initTimeZone(timeZone);
+}
+
+void initNtpServer(const String& server) {
+    // Don't know why this code does not work.
+    //configTime(0, 0, server.c_str());
+    configTime(0, 0, server.c_str(), "pool.ntp.org", "time.nist.gov");
+    Serial.println("NTP-Server aktualisiert: " + server);
+}
+
+void initTimeZone(const String& tz) {
     // Now adjust the TZ. Clock settings are adjusted to show the new local time
-    setenv("TZ", timeZone, 1);  
+    setenv("TZ", tz.c_str(), 1);  
     tzset();
+    Serial.println("Zeitzone gesetzt: " + tz);
 }

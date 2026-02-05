@@ -7,6 +7,7 @@
 #include "clocktime.h"
 #include "webserver.h"
 #include "display.h"
+#include "ntptask.h"
 
 #define RADAR_PIN 13   //Radar-Sensor GPIO
 
@@ -226,6 +227,37 @@ void handleSetWifi(AsyncWebServerRequest *request) {
   }
 }
 
+void handleGetNetworkInfo(AsyncWebServerRequest *request) {
+  String json = "{";
+  json += "\"ssid\":\"" + getSSID() + "\"";
+  json += ",\"ntpServer\":\"" + getNtpServer() + "\"";
+  json += ",\"timeZone\":\"" + getTimeZone() + "\"";
+  json += "}";
+  request->send(200, "application/json", json);
+}
+
+void handleSetNtpServer(AsyncWebServerRequest *request) {
+  if (request->hasParam("ntpServer", true)) {
+    String ntpServer = request->getParam("ntpServer", true)->value();
+    setNtpServer(ntpServer);
+    request->send(200, "text/plain", "NTP server updated");
+    initNtpServer(ntpServer);  // NTP-Server sofort anwenden
+  } else {
+    request->send(400, "text/plain", "Missing 'ntpServer' parameter");
+  }
+}
+
+void handleSetTimeZone(AsyncWebServerRequest *request) {
+  if (request->hasParam("timeZone", true)) {
+    String timeZone = request->getParam("timeZone", true)->value();
+    setTimeZone(timeZone);
+    request->send(200, "text/plain", "Time zone updated");
+    initTimeZone(timeZone);  // Zeitzone sofort anwenden
+  } else {
+    request->send(400, "text/plain", "Missing 'timeZone' parameter");
+  }
+}
+
 void setupWebServerHandlers(AsyncWebServer& server)
 {
   // Captive-Portal-Routen für Android/iOS/Windows
@@ -269,6 +301,9 @@ void setupWebServerHandlers(AsyncWebServer& server)
   server.on("/setAnimMode", HTTP_GET, handleSetAnimMode);
 
   server.on("/setWifi", HTTP_POST, handleSetWifi);
+  server.on("/getNetworkInfo", HTTP_GET, handleGetNetworkInfo);
+  server.on("/setNtpServer", HTTP_POST, handleSetNtpServer);
+  server.on("/setTimeZone", HTTP_POST, handleSetTimeZone);
 
   // Events-Handler (SSE) registrieren
   server.addHandler(&events);
@@ -297,4 +332,28 @@ void loopRadarCheck() {
     lastRadarState = current;
     events.send(String(current).c_str(), "radar", millis());
   }
+}
+
+void printLocalTime(){
+  struct tm timeinfo;
+  if(!getLocalTime(&timeinfo)){
+    Serial.println("Failed to obtain time 1");
+    return;
+  }
+  Serial.print("getLocalTime: ");
+  Serial.println(&timeinfo, "%Y-%m-%d %H:%M:%S");
+}
+
+void sendTimeEvent() {
+  DateTime now = getDateTime();
+  
+  char buffer[20];
+  snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d %02d:%02d:%02d",
+           now.year(), now.month(), now.day(),
+           now.hour(), now.minute(), now.second());
+  String payload = String(buffer);
+  events.send(payload.c_str(), "time", millis());
+  
+  Serial.println("RTC Time: " + payload);
+  printLocalTime();
 }

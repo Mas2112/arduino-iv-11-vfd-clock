@@ -120,6 +120,7 @@ void setup() {
 
 // Hauptschleife:
 void loop() {
-// Das wird alles in tasks.cpp abgehandelt
-
+  // Das wird alles in tasks.cpp abgehandelt
+  //Serial.println("Hello");
+  //delay(1000);
 }

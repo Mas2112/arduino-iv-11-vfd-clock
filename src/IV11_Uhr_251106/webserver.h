@@ -6,6 +6,7 @@ extern AsyncWebServer server;
 
 void setupWebserver();
 void loopRadarCheck();
+void sendTimeEvent();
 
 // Initialisiert den Webserver und richtet alle Routen ein
 void setupWebServer();

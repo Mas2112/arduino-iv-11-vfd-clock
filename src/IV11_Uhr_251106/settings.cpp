@@ -57,6 +57,11 @@ int useNTP = 1;
 // IP-Adresse oder URL des zu verwendenden NTP-Servers
 String ntpServer = "pool.ntp.org";
 
+// Time Zone:
+// https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
+// Europe/Berlin
+String timeZone = "CET-1CEST,M3.5.0,M10.5.0/3";
+
 // --------------------
 // Lade gespeicherte Einstellungen
 // --------------------
@@ -74,6 +79,7 @@ void loadSettings() {
     timeShift             = prefs.getInt("timeShift", 1);
     useNTP                = prefs.getInt("useNTP", 1);
     ntpServer             = prefs.getString("ntpServer", "pool.ntp.org");
+    timeZone              = prefs.getString("timeZone", "CET-1CEST,M3.5.0,M10.5.0/3");
 
     prefs.end();
 
@@ -101,6 +107,7 @@ void saveSettings() {
     prefs.putInt("timeShift", timeShift);
     prefs.putInt("useNTP", useNTP);
     prefs.putString("ntpServer", ntpServer);
+    prefs.putString("timeZone", timeZone);
 
     prefs.end();  // erst jetzt wirklich commit
 
@@ -150,3 +157,6 @@ int getUseNTP() { return useNTP; }
 
 void setNtpServer(const String& server) { ntpServer = server; saveSettings(); }
 String getNtpServer() { return ntpServer; }
+
+void setTimeZone(const String& tz) { timeZone = tz; saveSettings(); }
+String getTimeZone() { return timeZone; }
