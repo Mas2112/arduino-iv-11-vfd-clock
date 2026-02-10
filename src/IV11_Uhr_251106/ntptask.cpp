@@ -13,9 +13,10 @@ void timeSyncCallback(struct timeval *tv) {
 
     struct tm timeinfo;
     if (getLocalTime(&timeinfo)) {
-        Serial.printf("Setting time: %s", asctime(&timeinfo));
-        setRTCtime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-        updateRTCDate(timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
+        time_t utc = time(NULL);
+        setTimeUtc(utc);
+
+        Serial.printf("Setting UTC time: %d", utc);
     } else {
         Serial.println("Fehler beim Abrufen der lokalen Zeit");
     }

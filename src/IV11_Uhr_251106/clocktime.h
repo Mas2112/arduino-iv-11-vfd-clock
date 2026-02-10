@@ -26,3 +26,6 @@ void setRTCtime(int hours, int minutes, int seconds);
 
 //Hilfsfunktion zum Stellen des Datums
 void updateRTCDate(int year, int month, int day);
+
+// Setzt die aktuelle Zeit als UTC-Zeit (z. B. von NTP)
+void setTimeUtc(time_t utc);

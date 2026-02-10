@@ -69,3 +69,8 @@ void updateRTCDate(int year, int month, int day) {
   rtc.adjust(DateTime(year, month, day,
                       now.hour(), now.minute(), now.second()));
 }
+
+// Setzt die aktuelle Zeit als UTC-Zeit (z. B. von NTP)
+void setTimeUtc(time_t utc) {
+  rtc.adjust(DateTime(utc));
+}

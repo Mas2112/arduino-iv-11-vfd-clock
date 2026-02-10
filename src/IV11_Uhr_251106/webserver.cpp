@@ -167,12 +167,12 @@ void handleGetDateTime(AsyncWebServerRequest *request) {
 }
 
 void handleGetCurrentTimes(AsyncWebServerRequest *request) {
-  DateTime rtcTime = getDateTime();
-
+  time_t rtcTime = getDateTime().unixtime();
+  struct tm* rtcTm = localtime(&rtcTime);
   char rtcTimeStr[22];
   snprintf(rtcTimeStr, sizeof(rtcTimeStr), "%04d-%02d-%02d %02d:%02d:%02d",
-           rtcTime.year(), rtcTime.month(), rtcTime.day(),
-           rtcTime.hour(), rtcTime.minute(), rtcTime.second());
+           rtcTm->tm_year + 1900, rtcTm->tm_mon + 1, rtcTm->tm_mday,
+           rtcTm->tm_hour, rtcTm->tm_min, rtcTm->tm_sec);
 
   char ntpTimeStr[22] = "-";
   if (isTimeSynchronized()) {
