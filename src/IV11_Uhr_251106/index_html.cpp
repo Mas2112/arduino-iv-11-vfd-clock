@@ -1,7 +1,6 @@
 #include "index_html.h"
 
 const char MAIN_page[] = R"rawliteral(
-<!-- Für HTML Entwicklung. Inhalt kopieren und in index_html.cpp hinzufügen. -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -314,7 +313,8 @@ body.dark #darkModeRow {
   <div class="container">
     <h1>IV-11 Uhr Webinterface</h1>
 
-    <h2><span id="currentTime"></span></h2>
+    <h2>RTC: <span id="currentRtcTime"></span></h2>
+    <h2>NTP: <span id="currentNtpTime"></span></h2>
 
     <label for="ledBrightness">LED-Helligkeit:</label>
     <input type="range" id="ledBrightness" min="0" max="100" value="50">
@@ -337,7 +337,7 @@ body.dark #darkModeRow {
     <div class="group">
       <div class="group-row">
         <label for="ssidSelect">WLAN auswählen:</label>
-        <select id="ssidSelect">
+        <select id="ssidSelect" disabled>
         <option>Lade WLAN-Liste...</option>
         </select>
         <button onclick="scanWLANs()">Neu scannen</button>
@@ -357,14 +357,15 @@ body.dark #darkModeRow {
       <div class="group-row">
         <label for="ntpServer">NTP-Server:</label>
         <input type="text" id="ntpServer">
-        <bitton onclick="saveNtpServer()" class="primary-button">Speichern</button>
       </div>
       <div class="group-row">
         <label for="timeZone">Zeitzone:</label>
         <select id="timeZone">
           <option value="">-</option>
         </select>
-        <bitton onclick="saveTimeZone()" class="primary-button">Speichern</button>
+      </div>
+      <div class="group-row">
+        <button onclick="saveNtpTimeZone()" class="primary-button">Speichern</button>
       </div>
     </div>
    
@@ -590,6 +591,7 @@ body.dark #darkModeRow {
             opt.textContent = ssid;
             select.appendChild(opt);
           });
+          select.disabled = false;
         })
         .catch(err => {
           console.error("Fehler beim WLAN-Scan:", err);
@@ -597,7 +599,7 @@ body.dark #darkModeRow {
     }
 
     // Starte initialen WLAN-Scan beim Laden
-    window.onload = scanWLANs;
+    //window.onload = scanWLANs;
 
 
 
@@ -692,17 +694,18 @@ body.dark #darkModeRow {
         .then(data => {
           document.getElementById("ssidSelect").value = data.ssid;
           document.getElementById("ntpServer").value = data.ntpServer;
-          document.getElementById("timeZone").value = data.timeZone;
+          document.getElementById("timeZone").value = data.timeZoneName;
         });
     }
 
     // Initial beim Laden
     window.onload = function() {
       loadTimeZones();
-      scanWLANs();   
+      //scanWLANs();   
       loadDateTime(); 
       loadSleepSettings();
       loadWifiInfo();
+      loadCurrentTimes();
     };
 
     function updateRadarBox(state) {
@@ -825,49 +828,49 @@ body.dark #darkModeRow {
       });
     }
 
-    function saveNtpServer() {
+    function saveNtpTimeZone() {
       const ntpServer = document.getElementById('ntpServer').value.trim();
       if (!ntpServer) {
         alert("Bitte einen NTP-Server eingeben!");
         return;
       }
-      fetch('/setNtpServer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `ntpServer=${encodeURIComponent(ntpServer)}`
-      }).then(res => {
-        if (res.ok) {
-          alert("NTP-Server erfolgreich gesetzt!");
-        } else {
-          alert("Fehler beim Setzen des NTP-Servers.");
-        }
-      });
-    }
 
-    function saveTimeZone() {
-      const timeZone = document.getElementById('timeZone').value.trim();
+      const timeZoneSelect = document.getElementById('timeZone');
+      const timeZoneName = timeZoneSelect.value.trim();
+      const timeZone = timeZones[timeZoneName];
       if (!timeZone) {
         alert("Bitte eine Zeitzone eingeben!");
         return;
       }
-      fetch('/setTimeZone', {
+
+      fetch('/setNtpTimeZone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `timeZone=${encodeURIComponent(timeZone)}`
+        body: `ntpServer=${encodeURIComponent(ntpServer)}&timeZone=${encodeURIComponent(timeZone)}&timeZoneName=${encodeURIComponent(timeZoneName)}`
       }).then(res => {
         if (res.ok) {
-          alert("Zeitzone erfolgreich gesetzt!");
+          alert("NTP-Server und Zeitzone erfolgreich gesetzt!");
         } else {
-          alert("Fehler beim Setzen der Zeitzone.");
+          alert("Fehler beim Setzen des NTP-Servers und der Zeitzone.");
         }
       });
+    }
+
+    function loadCurrentTimes() {
+      fetch('/getCurrentTimes')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('currentRtcTime').textContent = data.rtc;
+          document.getElementById('currentNtpTime').textContent = data.ntp;
+        })
+        .catch(err => console.error("Fehler beim Laden der aktuellen Zeiten:", err));
     }
 
     function loadTimeZones() {
       const timeZoneSelect = document.getElementById('timeZone');
       Object.entries(timeZones).forEach(([name, code]) => {
           const option = document.createElement("option");
-          option.value = code;
+          option.value = name;
           option.textContent = `${name} (${code})`;
           timeZoneSelect.appendChild(option);
       });
@@ -1340,5 +1343,3 @@ body.dark #darkModeRow {
 </body>
 </html>
 )rawliteral";
-
-

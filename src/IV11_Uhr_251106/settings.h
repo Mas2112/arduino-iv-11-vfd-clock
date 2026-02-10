@@ -53,5 +53,8 @@ int getUseNTP();
 void setNtpServer(const String& server);
 String getNtpServer();
 
+void setTimeZoneName(const String& tzName);
+String getTimeZoneName();
+
 void setTimeZone(const String& tz);
 String getTimeZone();

@@ -59,7 +59,7 @@ String ntpServer = "pool.ntp.org";
 
 // Time Zone:
 // https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
-// Europe/Berlin
+String timeZoneName = "Europe/Berlin";
 String timeZone = "CET-1CEST,M3.5.0,M10.5.0/3";
 
 // --------------------
@@ -79,6 +79,7 @@ void loadSettings() {
     timeShift             = prefs.getInt("timeShift", 1);
     useNTP                = prefs.getInt("useNTP", 1);
     ntpServer             = prefs.getString("ntpServer", "pool.ntp.org");
+    timeZoneName          = prefs.getString("timeZone", "Europe/Berlin");
     timeZone              = prefs.getString("timeZone", "CET-1CEST,M3.5.0,M10.5.0/3");
 
     prefs.end();
@@ -157,6 +158,9 @@ int getUseNTP() { return useNTP; }
 
 void setNtpServer(const String& server) { ntpServer = server; saveSettings(); }
 String getNtpServer() { return ntpServer; }
+
+void setTimeZoneName(const String& tzName) { timeZoneName = tzName; saveSettings(); }
+String getTimeZoneName() { return timeZoneName; }
 
 void setTimeZone(const String& tz) { timeZone = tz; saveSettings(); }
 String getTimeZone() { return timeZone; }

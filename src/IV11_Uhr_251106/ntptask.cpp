@@ -5,8 +5,11 @@
 #include "clocktime.h"
 #include "esp_sntp.h"
 
+bool timeSynchronized = false;
+
 void timeSyncCallback(struct timeval *tv) {
     Serial.println("Zeit synchronisiert");
+    timeSynchronized = true;
 
     struct tm timeinfo;
     if (getLocalTime(&timeinfo)) {
@@ -40,4 +43,25 @@ void initTimeZone(const String& tz) {
     setenv("TZ", tz.c_str(), 1);  
     tzset();
     Serial.println("Zeitzone gesetzt: " + tz);
+}
+
+bool isTimeSynchronized() {
+    return timeSynchronized;
+}
+
+tm getNtpTime() {
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo)) {
+        timeinfo.tm_year = 0;
+        timeinfo.tm_mon = 0;
+        timeinfo.tm_mday = 0;
+        timeinfo.tm_wday = 0;
+        timeinfo.tm_yday = 0;
+        timeinfo.tm_hour = 0;
+        timeinfo.tm_min = 0;
+        timeinfo.tm_sec = 0;
+        timeinfo.tm_isdst = 0;
+    }
+
+    return timeinfo; // Uninitialized, but caller should check isTimeSynchronized() first
 }

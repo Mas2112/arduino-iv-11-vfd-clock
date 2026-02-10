@@ -166,6 +166,31 @@ void handleGetDateTime(AsyncWebServerRequest *request) {
   request->send(200, "application/json", payload);
 }
 
+void handleGetCurrentTimes(AsyncWebServerRequest *request) {
+  DateTime rtcTime = getDateTime();
+
+  char rtcTimeStr[22];
+  snprintf(rtcTimeStr, sizeof(rtcTimeStr), "%04d-%02d-%02d %02d:%02d:%02d",
+           rtcTime.year(), rtcTime.month(), rtcTime.day(),
+           rtcTime.hour(), rtcTime.minute(), rtcTime.second());
+
+  char ntpTimeStr[22] = "-";
+  if (isTimeSynchronized()) {
+    tm ntpTime = getNtpTime();
+    snprintf(ntpTimeStr, sizeof(ntpTimeStr), "%04d-%02d-%02d %02d:%02d:%02d",
+             ntpTime.tm_year + 1900, ntpTime.tm_mon + 1, ntpTime.tm_mday,
+             ntpTime.tm_hour, ntpTime.tm_min, ntpTime.tm_sec);
+  }
+
+  // Build JSON payload into a single stack buffer to avoid heap fragmentation.
+  char payloadBuf[70];
+  snprintf(payloadBuf, sizeof(payloadBuf),
+           "{\"rtc\":\"%s\",\"ntp\":\"%s\"}",
+           rtcTimeStr,
+           ntpTimeStr);
+  request->send(200, "application/json", payloadBuf);
+}
+
 void handleGetSleepSettings(AsyncWebServerRequest *request) {
   String json = "{";
   json += "\"useSleepMode\":" + String(getUseSleepMode());
@@ -231,30 +256,29 @@ void handleGetNetworkInfo(AsyncWebServerRequest *request) {
   String json = "{";
   json += "\"ssid\":\"" + getSSID() + "\"";
   json += ",\"ntpServer\":\"" + getNtpServer() + "\"";
+  json += ",\"timeZoneName\":\"" + getTimeZoneName() + "\"";
   json += ",\"timeZone\":\"" + getTimeZone() + "\"";
   json += "}";
   request->send(200, "application/json", json);
 }
 
-void handleSetNtpServer(AsyncWebServerRequest *request) {
-  if (request->hasParam("ntpServer", true)) {
+void handleSetNtpTimeZone(AsyncWebServerRequest *request) {
+  if (request->hasParam("ntpServer", true) && 
+    request->hasParam("timeZone", true) && 
+    request->hasParam("timeZoneName", true)) {
     String ntpServer = request->getParam("ntpServer", true)->value();
-    setNtpServer(ntpServer);
-    request->send(200, "text/plain", "NTP server updated");
-    initNtpServer(ntpServer);  // NTP-Server sofort anwenden
-  } else {
-    request->send(400, "text/plain", "Missing 'ntpServer' parameter");
-  }
-}
-
-void handleSetTimeZone(AsyncWebServerRequest *request) {
-  if (request->hasParam("timeZone", true)) {
     String timeZone = request->getParam("timeZone", true)->value();
+    String timeZoneName = request->getParam("timeZoneName", true)->value();
+
+    setNtpServer(ntpServer);
     setTimeZone(timeZone);
-    request->send(200, "text/plain", "Time zone updated");
-    initTimeZone(timeZone);  // Zeitzone sofort anwenden
+    setTimeZoneName(timeZoneName);
+
+    request->send(200, "text/plain", "NTP server and time zone updated");
+    
+    initTime();
   } else {
-    request->send(400, "text/plain", "Missing 'timeZone' parameter");
+    request->send(400, "text/plain", "Missing parameters");
   }
 }
 
@@ -289,6 +313,7 @@ void setupWebServerHandlers(AsyncWebServer& server)
   server.on("/setDate", HTTP_POST, handleSetDate);
 
   server.on("/getDateTime", HTTP_GET, handleGetDateTime);
+  server.on("/getCurrentTimes", HTTP_GET, handleGetCurrentTimes);
 
   server.on("/getSleepSettings", HTTP_GET, handleGetSleepSettings);
 
@@ -302,8 +327,7 @@ void setupWebServerHandlers(AsyncWebServer& server)
 
   server.on("/setWifi", HTTP_POST, handleSetWifi);
   server.on("/getNetworkInfo", HTTP_GET, handleGetNetworkInfo);
-  server.on("/setNtpServer", HTTP_POST, handleSetNtpServer);
-  server.on("/setTimeZone", HTTP_POST, handleSetTimeZone);
+  server.on("/setNtpTimeZone", HTTP_POST, handleSetNtpTimeZone);
 
   // Events-Handler (SSE) registrieren
   server.addHandler(&events);
